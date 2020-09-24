@@ -80,6 +80,10 @@ This section describes approaches based on local 2D features and used to categor
     -   (Python) An example using the features2D framework to perform object categorization can be
         found at opencv_source_code/samples/python/find_obj.py
 
+    @defgroup feature2d_hal Hardware Acceleration Layer
+    @{
+        @defgroup features2d_hal_interface Interface
+    @}
   @}
  */
 
@@ -240,6 +244,45 @@ typedef Feature2D DescriptorExtractor;
 //! @addtogroup features2d_main
 //! @{
 
+
+/** @brief Class for extracting keypoints and computing descriptors using the Scale Invariant Feature Transform
+(SIFT) algorithm by D. Lowe @cite Lowe04 .
+*/
+class CV_EXPORTS_W SIFT : public Feature2D
+{
+public:
+    /**
+    @param nfeatures The number of best features to retain. The features are ranked by their scores
+    (measured in SIFT algorithm as the local contrast)
+
+    @param nOctaveLayers The number of layers in each octave. 3 is the value used in D. Lowe paper. The
+    number of octaves is computed automatically from the image resolution.
+
+    @param contrastThreshold The contrast threshold used to filter out weak features in semi-uniform
+    (low-contrast) regions. The larger the threshold, the less features are produced by the detector.
+
+    @note The contrast threshold will be divided by nOctaveLayers when the filtering is applied. When
+    nOctaveLayers is set to default and if you want to use the value used in D. Lowe paper, 0.03, set
+    this argument to 0.09.
+
+    @param edgeThreshold The threshold used to filter out edge-like features. Note that the its meaning
+    is different from the contrastThreshold, i.e. the larger the edgeThreshold, the less features are
+    filtered out (more features are retained).
+
+    @param sigma The sigma of the Gaussian applied to the input image at the octave \#0. If your image
+    is captured with a weak camera with soft lenses, you might want to reduce the number.
+    */
+    CV_WRAP static Ptr<SIFT> create(int nfeatures = 0, int nOctaveLayers = 3,
+        double contrastThreshold = 0.04, double edgeThreshold = 10,
+        double sigma = 1.6);
+
+    CV_WRAP virtual String getDefaultName() const CV_OVERRIDE;
+};
+
+typedef SIFT SiftFeatureDetector;
+typedef SIFT SiftDescriptorExtractor;
+
+
 /** @brief Class implementing the BRISK keypoint detector and descriptor extractor, described in @cite LCS11 .
  */
 class CV_EXPORTS_W BRISK : public Feature2D
@@ -341,7 +384,7 @@ public:
     but it is a little faster to compute.
     @param patchSize size of the patch used by the oriented BRIEF descriptor. Of course, on smaller
     pyramid layers the perceived image area covered by a feature will be larger.
-    @param fastThreshold
+    @param fastThreshold the fast threshold
      */
     CV_WRAP static Ptr<ORB> create(int nfeatures=500, float scaleFactor=1.2f, int nlevels=8, int edgeThreshold=31,
         int firstLevel=0, int WTA_K=2, ORB::ScoreType scoreType=ORB::HARRIS_SCORE, int patchSize=31, int fastThreshold=20);
@@ -394,7 +437,7 @@ code which is distributed under GPL.
 class CV_EXPORTS_W MSER : public Feature2D
 {
 public:
-    /** @brief Full consturctor for %MSER detector
+    /** @brief Full constructor for %MSER detector
 
     @param _delta it compares \f$(size_{i}-size_{i-delta})/size_{i-delta}\f$
     @param _min_area prune the area which smaller than minArea

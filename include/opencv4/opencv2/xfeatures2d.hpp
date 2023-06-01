@@ -102,6 +102,20 @@ public:
                              float patternScale = 22.0f,
                              int nOctaves = 4,
                              const std::vector<int>& selectedPairs = std::vector<int>());
+
+    CV_WRAP virtual void setOrientationNormalized(bool orientationNormalized) = 0;
+    CV_WRAP virtual bool getOrientationNormalized() const = 0;
+
+    CV_WRAP virtual void setScaleNormalized(bool scaleNormalized) = 0;
+    CV_WRAP virtual bool getScaleNormalized() const = 0;
+
+    CV_WRAP virtual void setPatternScale(double patternScale) = 0;
+    CV_WRAP virtual double getPatternScale() const = 0;
+
+    CV_WRAP virtual void setNOctaves(int nOctaves) = 0;
+    CV_WRAP virtual int getNOctaves() const = 0;
+
+    CV_WRAP String getDefaultName() const CV_OVERRIDE;
 };
 
 
@@ -115,6 +129,23 @@ public:
                          int lineThresholdProjected=10,
                          int lineThresholdBinarized=8,
                          int suppressNonmaxSize=5);
+
+    CV_WRAP virtual void setMaxSize(int _maxSize) = 0;
+    CV_WRAP virtual int getMaxSize() const = 0;
+
+    CV_WRAP virtual void setResponseThreshold(int _responseThreshold) = 0;
+    CV_WRAP virtual int getResponseThreshold() const = 0;
+
+    CV_WRAP virtual void setLineThresholdProjected(int _lineThresholdProjected) = 0;
+    CV_WRAP virtual int getLineThresholdProjected() const = 0;
+
+    CV_WRAP virtual void setLineThresholdBinarized(int _lineThresholdBinarized) = 0;
+    CV_WRAP virtual int getLineThresholdBinarized() const = 0;
+
+    CV_WRAP virtual void setSuppressNonmaxSize(int _suppressNonmaxSize) = 0;
+    CV_WRAP virtual int getSuppressNonmaxSize() const = 0;
+
+    CV_WRAP String getDefaultName() const CV_OVERRIDE;
 };
 
 /*
@@ -131,6 +162,14 @@ class CV_EXPORTS_W BriefDescriptorExtractor : public Feature2D
 {
 public:
     CV_WRAP static Ptr<BriefDescriptorExtractor> create( int bytes = 32, bool use_orientation = false );
+
+    CV_WRAP virtual void setDescriptorSize(int bytes) = 0;
+    CV_WRAP virtual int getDescriptorSize() const = 0;
+
+    CV_WRAP virtual void setUseOrientation(bool use_orientation) = 0;
+    CV_WRAP virtual bool getUseOrientation() const = 0;
+
+    CV_WRAP String getDefaultName() const CV_OVERRIDE;
 };
 
 /** @brief Class implementing the locally uniform comparison image descriptor, described in @cite LUCID
@@ -148,6 +187,14 @@ public:
      * @param blur_kernel kernel for blurring image prior to descriptor construction, where 1=3x3, 2=5x5, 3=7x7 and so forth
      */
     CV_WRAP static Ptr<LUCID> create(const int lucid_kernel = 1, const int blur_kernel = 2);
+
+    CV_WRAP virtual void setLucidKernel(int lucid_kernel) = 0;
+    CV_WRAP virtual int getLucidKernel() const = 0;
+
+    CV_WRAP virtual void setBlurKernel(int blur_kernel) = 0;
+    CV_WRAP virtual int getBlurKernel() const = 0;
+
+    CV_WRAP String getDefaultName() const CV_OVERRIDE;
 };
 
 
@@ -177,6 +224,115 @@ class CV_EXPORTS_W LATCH : public Feature2D
 {
 public:
     CV_WRAP static Ptr<LATCH> create(int bytes = 32, bool rotationInvariance = true, int half_ssd_size = 3, double sigma = 2.0);
+
+    CV_WRAP virtual void setBytes(int bytes) = 0;
+    CV_WRAP virtual int getBytes() const = 0;
+
+    CV_WRAP virtual void setRotationInvariance(bool rotationInvariance) = 0;
+    CV_WRAP virtual bool getRotationInvariance() const = 0;
+
+    CV_WRAP virtual void setHalfSSDsize(int half_ssd_size) = 0;
+    CV_WRAP virtual int getHalfSSDsize() const = 0;
+
+    CV_WRAP virtual void setSigma(double sigma) = 0;
+    CV_WRAP virtual double getSigma() const = 0;
+
+    CV_WRAP String getDefaultName() const CV_OVERRIDE;
+};
+
+/** @brief Class implementing BEBLID (Boosted Efficient Binary Local Image Descriptor),
+ * described in @cite Suarez2020BEBLID .
+
+BEBLID \cite Suarez2020BEBLID is a efficient binary descriptor learned with boosting.
+It is able to describe keypoints from any detector just by changing the scale_factor parameter.
+In several benchmarks it has proved to largely improve other binary descriptors like ORB or
+BRISK with the same efficiency. BEBLID describes using the difference of mean gray values in
+different regions of the image around the KeyPoint, the descriptor is specifically optimized for
+image matching and patch retrieval addressing the asymmetries of these problems.
+
+If you find this code useful, please add a reference to the following paper:
+<BLOCKQUOTE> Iago Suárez, Ghesn Sfeir, José M. Buenaposada, and Luis Baumela.
+BEBLID: Boosted efficient binary local image descriptor.
+Pattern Recognition Letters, 133:366–372, 2020. </BLOCKQUOTE>
+
+The descriptor was trained using 1 million of randomly sampled pairs of patches
+(20% positives and 80% negatives) from the Liberty split of the UBC datasets
+\cite winder2007learning as described in the paper @cite Suarez2020BEBLID.
+You can check in the [AKAZE example](https://raw.githubusercontent.com/opencv/opencv/master/samples/cpp/tutorial_code/features2D/AKAZE_match.cpp)
+how well BEBLID works. Detecting 10000 keypoints with ORB and describing with BEBLID obtains
+561 inliers (75%) whereas describing with ORB obtains only 493 inliers (63%).
+*/
+class CV_EXPORTS_W BEBLID : public Feature2D
+{
+public:
+    /**
+     * @brief  Descriptor number of bits, each bit is a boosting weak-learner.
+     * The user can choose between 512 or 256 bits.
+     */
+    enum BeblidSize
+    {
+        SIZE_512_BITS = 100, SIZE_256_BITS = 101,
+    };
+    /** @brief Creates the BEBLID descriptor.
+    @param scale_factor Adjust the sampling window around detected keypoints:
+    - <b> 1.00f </b> should be the scale for ORB keypoints
+    - <b> 6.75f </b> should be the scale for SIFT detected keypoints
+    - <b> 6.25f </b> is default and fits for KAZE, SURF detected keypoints
+    - <b> 5.00f </b> should be the scale for AKAZE, MSD, AGAST, FAST, BRISK keypoints
+    @param n_bits Determine the number of bits in the descriptor. Should be either
+     BEBLID::SIZE_512_BITS or BEBLID::SIZE_256_BITS.
+    */
+    CV_WRAP static Ptr<BEBLID> create(float scale_factor, int n_bits = BEBLID::SIZE_512_BITS);
+
+    CV_WRAP virtual void setScaleFactor(float scale_factor) = 0;
+    CV_WRAP virtual float getScaleFactor() const = 0;
+
+    CV_WRAP String getDefaultName() const CV_OVERRIDE;
+};
+
+/** @brief Class implementing TEBLID (Triplet-based Efficient Binary Local Image Descriptor),
+ * described in @cite Suarez2021TEBLID.
+
+TEBLID stands for Triplet-based Efficient Binary Local Image Descriptor, although originally it was called BAD
+\cite Suarez2021TEBLID. It is an improvement over BEBLID \cite Suarez2020BEBLID, that uses triplet loss,
+hard negative mining, and anchor swap to improve the image matching results.
+It is able to describe keypoints from any detector just by changing the scale_factor parameter.
+TEBLID is as efficient as ORB, BEBLID or BRISK, but the triplet-based training objective selected more
+discriminative features that explain the accuracy gain. It is also more compact than BEBLID,
+when running the [AKAZE example](https://github.com/opencv/opencv/blob/4.x/samples/cpp/tutorial_code/features2D/AKAZE_match.cpp)
+with 10000 keypoints detected by ORB, BEBLID obtains 561 inliers (75%) with 512 bits, whereas
+TEBLID obtains 621 (75.2%) with 256 bits. ORB obtains only 493 inliers (63%).
+
+If you find this code useful, please add a reference to the following paper:
+<BLOCKQUOTE> Iago Suárez, José M. Buenaposada, and Luis Baumela.
+Revisiting Binary Local Image Description for Resource Limited Devices.
+IEEE Robotics and Automation Letters, vol. 6, no. 4, pp. 8317-8324, Oct. 2021. </BLOCKQUOTE>
+
+The descriptor was trained in Liberty split of the UBC datasets \cite winder2007learning .
+*/
+class CV_EXPORTS_W TEBLID : public Feature2D
+{
+public:
+    /**
+     * @brief  Descriptor number of bits, each bit is a box average difference.
+     * The user can choose between 256 or 512 bits.
+     */
+    enum TeblidSize
+    {
+        SIZE_256_BITS = 102, SIZE_512_BITS = 103,
+    };
+    /** @brief Creates the TEBLID descriptor.
+    @param scale_factor Adjust the sampling window around detected keypoints:
+    - <b> 1.00f </b> should be the scale for ORB keypoints
+    - <b> 6.75f </b> should be the scale for SIFT detected keypoints
+    - <b> 6.25f </b> is default and fits for KAZE, SURF detected keypoints
+    - <b> 5.00f </b> should be the scale for AKAZE, MSD, AGAST, FAST, BRISK keypoints
+    @param n_bits Determine the number of bits in the descriptor. Should be either
+     TEBLID::SIZE_256_BITS or TEBLID::SIZE_512_BITS.
+    */
+    CV_WRAP static Ptr<TEBLID> create(float scale_factor, int n_bits = TEBLID::SIZE_256_BITS);
+
+    CV_WRAP String getDefaultName() const CV_OVERRIDE;
 };
 
 /** @brief Class implementing DAISY descriptor, described in @cite Tola10
@@ -205,6 +361,32 @@ public:
     CV_WRAP static Ptr<DAISY> create( float radius = 15, int q_radius = 3, int q_theta = 8,
                 int q_hist = 8, DAISY::NormalizationType norm = DAISY::NRM_NONE, InputArray H = noArray(),
                 bool interpolation = true, bool use_orientation = false );
+
+    CV_WRAP virtual void setRadius(float radius) = 0;
+    CV_WRAP virtual float getRadius() const = 0;
+
+    CV_WRAP virtual void setQRadius(int q_radius) = 0;
+    CV_WRAP virtual int getQRadius() const = 0;
+
+    CV_WRAP virtual void setQTheta(int q_theta) = 0;
+    CV_WRAP virtual int getQTheta() const = 0;
+
+    CV_WRAP virtual void setQHist(int q_hist) = 0;
+    CV_WRAP virtual int getQHist() const = 0;
+
+    CV_WRAP virtual void setNorm(int norm) = 0;
+    CV_WRAP virtual int getNorm() const = 0;
+
+    CV_WRAP virtual void setH(InputArray H) = 0;
+    CV_WRAP virtual cv::Mat getH() const = 0;
+
+    CV_WRAP virtual void setInterpolation(bool interpolation) = 0;
+    CV_WRAP virtual bool getInterpolation() const = 0;
+
+    CV_WRAP virtual void setUseOrientation(bool use_orientation) = 0;
+    CV_WRAP virtual bool getUseOrientation() const = 0;
+
+    CV_WRAP String getDefaultName() const CV_OVERRIDE;
 
     /** @overload
      * @param image image to extract descriptors
@@ -283,9 +465,38 @@ class CV_EXPORTS_W MSDDetector : public Feature2D {
 
 public:
 
-    static Ptr<MSDDetector> create(int m_patch_radius = 3, int m_search_area_radius = 5,
+    CV_WRAP static Ptr<MSDDetector> create(int m_patch_radius = 3, int m_search_area_radius = 5,
             int m_nms_radius = 5, int m_nms_scale_radius = 0, float m_th_saliency = 250.0f, int m_kNN = 4,
             float m_scale_factor = 1.25f, int m_n_scales = -1, bool m_compute_orientation = false);
+
+    CV_WRAP virtual void setPatchRadius(int patch_radius) = 0;
+    CV_WRAP virtual int getPatchRadius() const = 0;
+
+    CV_WRAP virtual void setSearchAreaRadius(int use_orientation) = 0;
+    CV_WRAP virtual int getSearchAreaRadius() const = 0;
+
+    CV_WRAP virtual void setNmsRadius(int nms_radius) = 0;
+    CV_WRAP virtual int getNmsRadius() const = 0;
+
+    CV_WRAP virtual void setNmsScaleRadius(int nms_scale_radius) = 0;
+    CV_WRAP virtual int getNmsScaleRadius() const = 0;
+
+    CV_WRAP virtual void setThSaliency(float th_saliency) = 0;
+    CV_WRAP virtual float getThSaliency() const = 0;
+
+    CV_WRAP virtual void setKNN(int kNN) = 0;
+    CV_WRAP virtual int getKNN() const = 0;
+
+    CV_WRAP virtual void setScaleFactor(float scale_factor) = 0;
+    CV_WRAP virtual float getScaleFactor() const = 0;
+
+    CV_WRAP virtual void setNScales(int use_orientation) = 0;
+    CV_WRAP virtual int getNScales() const = 0;
+
+    CV_WRAP virtual void setComputeOrientation(bool compute_orientation) = 0;
+    CV_WRAP virtual bool getComputeOrientation() const = 0;
+
+    CV_WRAP String getDefaultName() const CV_OVERRIDE;
 };
 
 /** @brief Class implementing VGG (Oxford Visual Geometry Group) descriptor trained end to end
@@ -317,6 +528,8 @@ public:
     CV_WRAP static Ptr<VGG> create( int desc = VGG::VGG_120, float isigma = 1.4f,
                                     bool img_normalize = true, bool use_scale_orientation = true,
                                     float scale_factor = 6.25f, bool dsc_normalize = false );
+
+    CV_WRAP String getDefaultName() const CV_OVERRIDE;
 
     CV_WRAP virtual void setSigma(const float isigma) = 0;
     CV_WRAP virtual float getSigma() const = 0;
@@ -373,6 +586,8 @@ public:
 
     CV_WRAP static Ptr<BoostDesc> create( int desc = BoostDesc::BINBOOST_256,
                     bool use_scale_orientation = true, float scale_factor = 6.25f );
+
+    CV_WRAP String getDefaultName() const CV_OVERRIDE;
 
     CV_WRAP virtual void setUseScaleOrientation(const bool use_scale_orientation) = 0;
     CV_WRAP virtual bool getUseScaleOrientation() const = 0;
@@ -889,6 +1104,23 @@ public:
             float DOG_thresh=0.01f,
             int maxCorners=5000,
             int num_layers=4);
+
+    CV_WRAP virtual void setNumOctaves(int numOctaves_) = 0;
+    CV_WRAP virtual int getNumOctaves() const = 0;
+
+    CV_WRAP virtual void setCornThresh(float corn_thresh_) = 0;
+    CV_WRAP virtual float getCornThresh() const = 0;
+
+    CV_WRAP virtual void setDOGThresh(float DOG_thresh_) = 0;
+    CV_WRAP virtual float getDOGThresh() const = 0;
+
+    CV_WRAP virtual void setMaxCorners(int maxCorners_) = 0;
+    CV_WRAP virtual int getMaxCorners() const = 0;
+
+    CV_WRAP virtual void setNumLayers(int num_layers_) = 0;
+    CV_WRAP virtual int getNumLayers() const = 0;
+
+    CV_WRAP String getDefaultName() const CV_OVERRIDE;
 };
 
 /**
@@ -901,7 +1133,7 @@ public:
  * The interface is equivalent to @ref Feature2D, adding operations for
  * @ref Elliptic_KeyPoint "Elliptic_KeyPoints" instead of @ref KeyPoint "KeyPoints".
  */
-class CV_EXPORTS AffineFeature2D : public Feature2D
+class CV_EXPORTS_W AffineFeature2D : public Feature2D
 {
 public:
     /**
@@ -945,6 +1177,40 @@ public:
         bool useProvidedKeypoints=false ) = 0;
 };
 
+/**
+@brief Class implementing the Tree Based Morse Regions (TBMR) as described in
+@cite Najman2014 extended with scaled extraction ability.
+
+@param min_area prune areas smaller than minArea
+@param max_area_relative prune areas bigger than maxArea = max_area_relative *
+input_image_size
+@param scale_factor scale factor for scaled extraction.
+@param n_scales number of applications of the scale factor (octaves).
+
+@note This algorithm is based on Component Tree (Min/Max) as well as MSER but
+uses a Morse-theory approach to extract features.
+
+Features are ellipses (similar to MSER, however a MSER feature can never be a
+TBMR feature and vice versa).
+
+*/
+class CV_EXPORTS_W TBMR : public AffineFeature2D
+{
+public:
+    CV_WRAP static Ptr<TBMR> create(int min_area = 60,
+        float max_area_relative = 0.01f,
+        float scale_factor = 1.25f,
+        int n_scales = -1);
+
+    CV_WRAP virtual void setMinArea(int minArea) = 0;
+    CV_WRAP virtual int getMinArea() const = 0;
+    CV_WRAP virtual void setMaxAreaRelative(float maxArea) = 0;
+    CV_WRAP virtual float getMaxAreaRelative() const = 0;
+    CV_WRAP virtual void setScaleFactor(float scale_factor) = 0;
+    CV_WRAP virtual float getScaleFactor() const = 0;
+    CV_WRAP virtual void setNScales(int n_scales) = 0;
+    CV_WRAP virtual int getNScales() const = 0;
+};
 
 /** @brief Estimates cornerness for prespecified KeyPoints using the FAST algorithm
 

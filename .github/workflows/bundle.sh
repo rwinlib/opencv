@@ -30,9 +30,9 @@ done
 
 # Copy libs
 rm -Rf include share lib*
-mkdir -p lib/x64 lib-8.3.0/{x64,i386} share
-cp -v ${OUTPUT}/ucrt64/lib/*.a lib/x64/
-cp -v ${OUTPUT}/ucrt64/lib/opencv4/3rdparty/*.a lib/x64/
+mkdir -p lib lib-8.3.0/{x64,i386} share
+cp -v ${OUTPUT}/ucrt64/lib/*.a lib/
+cp -v ${OUTPUT}/ucrt64/lib/opencv4/3rdparty/*.a lib/
 cp -v ${OUTPUT}/mingw64/lib/*.a lib-8.3.0/x64/
 cp -v ${OUTPUT}/mingw64/lib/opencv4/3rdparty/*.a lib-8.3.0/x64/
 cp -v ${OUTPUT}/mingw32/lib/*.a lib-8.3.0/i386/

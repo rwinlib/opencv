@@ -72,6 +72,9 @@
 #define HAVE_OPENJPEG
 /* #undef HAVE_JASPER */
 
+/* AVIF codec */
+/* #undef HAVE_AVIF */
+
 /* IJG JPEG codec */
 #define HAVE_JPEG
 
@@ -116,7 +119,7 @@
 #define HAVE_PTHREADS_PF
 
 /* Intel Threading Building Blocks */
-#define HAVE_TBB
+/* #undef HAVE_TBB */
 
 /* Ste||ar Group High Performance ParallelX */
 /* #undef HAVE_HPX */
